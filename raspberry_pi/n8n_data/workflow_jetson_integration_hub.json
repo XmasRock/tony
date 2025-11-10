@@ -1,0 +1,124 @@
+{
+    "name": "Jetson Integration Hub",
+    "nodes": [
+      {
+        "parameters": {
+          "path": "system_status",
+          "options": {}
+        },
+        "id": "Webhook_SystemStatus",
+        "name": "Webhook System Status",
+        "type": "n8n-nodes-base.webhook",
+        "typeVersion": 1,
+        "position": [240, 300]
+      },
+      {
+        "parameters": {
+          "functionCode": "const cpu = $json[\"cpu\"];\nconst temp = $json[\"temperature\"];\nlet alert = false;\nlet message = $json[\"summary\"];\nif (cpu > 85 || temp > 75) {\n  alert = true;\n  message = `⚠️ Surchauffe ou charge élevée détectée (CPU ${cpu}%, Temp ${temp}°C)`;\n}\nreturn [{ alert, message }];"
+        },
+        "id": "Function_Analyze",
+        "name": "Analyze System Status",
+        "type": "n8n-nodes-base.function",
+        "typeVersion": 1,
+        "position": [520, 300]
+      },
+      {
+        "parameters": {
+          "fileName": "/home/pi/jetson_logs/system_status.log",
+          "data": "={{ $json | jsonStringify() }}",
+          "options": {
+            "append": true
+          }
+        },
+        "id": "File_Log",
+        "name": "Append to Log File",
+        "type": "n8n-nodes-base.writeBinaryFile",
+        "typeVersion": 1,
+        "position": [740, 440]
+      },
+      {
+        "parameters": {
+          "conditions": {
+            "boolean": [],
+            "string": [
+              {
+                "value1": "={{ $json[\"alert\"] }}",
+                "operation": "is true"
+              }
+            ]
+          }
+        },
+        "id": "If_Alert",
+        "name": "Alert?",
+        "type": "n8n-nodes-base.if",
+        "typeVersion": 1,
+        "position": [740, 300]
+      },
+      {
+        "parameters": {
+          "chatId": "1234567890",
+          "text": "={{ $json[\"message\"] }}",
+          "additionalFields": {}
+        },
+        "id": "Telegram_Notify",
+        "name": "Send Telegram Alert",
+        "type": "n8n-nodes-base.telegram",
+        "typeVersion": 1,
+        "position": [960, 280]
+      },
+      {
+        "parameters": {
+          "path": "speaker_output",
+          "responseMode": "lastNode",
+          "responseData": "={{ { text: \"Bonjour Valérie, tout fonctionne parfaitement sur le Jetson.\" } }}"
+        },
+        "id": "Webhook_Speaker",
+        "name": "Webhook Speaker Output",
+        "type": "n8n-nodes-base.webhook",
+        "typeVersion": 1,
+        "position": [240, 500]
+      }
+    ],
+    "connections": {
+      "Webhook_SystemStatus": {
+        "main": [
+          [
+            {
+              "node": "Analyze System Status",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Analyze System Status": {
+        "main": [
+          [
+            {
+              "node": "If_Alert",
+              "type": "main",
+              "index": 0
+            },
+            {
+              "node": "Append to Log File",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "If_Alert": {
+        "main": [
+          [
+            {
+              "node": "Send Telegram Alert",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      }
+    },
+    "active": true
+  }
+  

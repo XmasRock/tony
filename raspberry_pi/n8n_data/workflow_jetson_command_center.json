@@ -1,0 +1,110 @@
+{
+    "name": "Jetson Command Center",
+    "nodes": [
+      {
+        "parameters": {
+          "path": "jetson_command",
+          "options": {}
+        },
+        "id": "Webhook_Command",
+        "name": "Webhook Jetson Command",
+        "type": "n8n-nodes-base.webhook",
+        "typeVersion": 1,
+        "position": [240, 280]
+      },
+      {
+        "parameters": {
+          "functionCode": "const res = await this.helpers.request({\n  method: \"POST\",\n  uri: \"http://jetson:5050/command\",\n  json: $json\n});\nreturn res;"
+        },
+        "id": "Function_SendCommand",
+        "name": "Send Command to Jetson",
+        "type": "n8n-nodes-base.function",
+        "typeVersion": 1,
+        "position": [520, 280]
+      },
+      {
+        "parameters": {
+          "conditions": {
+            "string": [
+              {
+                "value1": "={{ $json[\"status\"] }}",
+                "operation": "is equal",
+                "value2": "ok"
+              }
+            ]
+          }
+        },
+        "id": "If_Success",
+        "name": "Command Success?",
+        "type": "n8n-nodes-base.if",
+        "typeVersion": 1,
+        "position": [740, 280]
+      },
+      {
+        "parameters": {
+          "chatId": "1234567890",
+          "text": "✅ Jetson a exécuté : {{$json[\"message\"]}}"
+        },
+        "id": "Telegram_Success",
+        "name": "Telegram Success",
+        "type": "n8n-nodes-base.telegram",
+        "typeVersion": 1,
+        "position": [960, 240]
+      },
+      {
+        "parameters": {
+          "chatId": "1234567890",
+          "text": "⚠️ Jetson erreur : {{$json[\"message\"]}}"
+        },
+        "id": "Telegram_Error",
+        "name": "Telegram Error",
+        "type": "n8n-nodes-base.telegram",
+        "typeVersion": 1,
+        "position": [960, 340]
+      }
+    ],
+    "connections": {
+      "Webhook_Command": {
+        "main": [
+          [
+            {
+              "node": "Send Command to Jetson",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Send Command to Jetson": {
+        "main": [
+          [
+            {
+              "node": "Command Success?",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Command Success?": {
+        "main": [
+          [
+            {
+              "node": "Telegram Success",
+              "type": "main",
+              "index": 0
+            }
+          ],
+          [
+            {
+              "node": "Telegram Error",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      }
+    },
+    "active": true
+  }
+  
