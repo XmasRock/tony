@@ -22,6 +22,7 @@ Créer un agent IA **autonome et contextuel** capable de :
 ## 🏗️ Architecture
 
 [ Caméra | Micro | Speaker ]
+
 ↓
 [ Jetson Orin Nano ]
 
@@ -32,12 +33,14 @@ MCP Server (FastAPI)
 Mémoire (JSON + Vector)
 
 Agents (caméra, audio, système)
+
 ↓
 [ Raspberry Pi ]
 
 n8n orchestrateur
 
 Workflows (IA, triggers)
+
 ↓
 [ PC Windows ]
 
@@ -83,6 +86,7 @@ un nœud HTTP → Jetson speaker (pour parler)
 
 # Stockage
 |Type	| Emplacement |	Format |
+|----|----|----|
 |Conversations|	/app/data/conversations|	JSON|
 |Mémoire vectorielle|	/app/data/embeddings|	ChromaDB|
 |Audio / Images	|/app/data/audio / /app/data/camera|	WAV / JPG|
