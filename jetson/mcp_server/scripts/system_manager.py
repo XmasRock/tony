@@ -1,29 +1,28 @@
+# /jetson/mcp_server/scripts/system_manager.py
+
 import psutil
-import subprocess
-import os
+import time
+
+def get_temperature():
+    """Récupère la température CPU du Jetson."""
+    try:
+        with open("/sys/devices/virtual/thermal/thermal_zone0/temp", "r") as f:
+            return int(f.read().strip()) / 1000
+    except Exception:
+        return 0.0
 
 def get_system_status():
-    """Retourne les informations système principales du Jetson."""
-    cpu_usage = psutil.cpu_percent(interval=1)
-    mem = psutil.virtual_memory()
-    disk = psutil.disk_usage('/')
-    gpu_temp = None
-    try:
-        output = subprocess.check_output(
-            ["cat", "/sys/devices/gpu.0/temp"],
-            text=True
-        )
-        gpu_temp = int(output) / 1000
-    except Exception:
-        pass
+    """Retourne un dictionnaire complet d’état système."""
+    temp = get_temperature()
+    cpu = psutil.cpu_percent(interval=1)
+    ram = psutil.virtual_memory().percent
+    disk = psutil.disk_usage("/").percent
+    uptime = time.time() - psutil.boot_time()
 
     return {
-        "cpu_usage": f"{cpu_usage:.1f}%",
-        "memory": f"{mem.percent:.1f}%",
-        "disk_usage": f"{disk.percent:.1f}%",
-        "gpu_temp": f"{gpu_temp}°C" if gpu_temp else "N/A",
-        "uptime": f"{psutil.boot_time():.0f}"
+        "temperature": temp,
+        "cpu": cpu,
+        "ram": ram,
+        "disk": disk,
+        "uptime": round(uptime / 3600, 2)  # en heures
     }
-
-if __name__ == "__main__":
-    print(get_system_status())

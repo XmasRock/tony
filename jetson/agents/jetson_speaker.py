@@ -1,23 +1,41 @@
-from scripts import speaker_manager
-import requests
+# /jetson/agents/jetson_speaker.py
+
 import time
+import requests
+from scripts import speaker_manager
+from langchain.llms import Ollama
+from langchain.prompts import PromptTemplate
 
-N8N_SPEAKER_WEBHOOK = "http://raspberrypi:5678/webhook/speaker_output"
+# Webhook n8n qui peut envoyer des phrases à prononcer
+N8N_SPEAKER_ENDPOINT = "http://raspberrypi:5678/webhook/speaker_output"
 
-def speaker_loop():
-    print("🔊 Agent haut-parleur en attente de messages...")
+# Ollama local pour reformuler les phrases si besoin
+llm = Ollama(model="llama3", base_url="http://localhost:11434")
+
+reformulation_prompt = PromptTemplate.from_template("""
+Tu es la voix de l'assistant de Valérie.
+Réécris cette phrase pour qu'elle soit naturelle, chaleureuse et fluide à dire à voix haute :
+"{phrase}"
+""")
+
+def speak_loop():
+    print("🔊 Agent speaker LangChain actif...")
     while True:
         try:
-            # Option : vérifier s'il y a un message en attente depuis n8n
-            resp = requests.get(N8N_SPEAKER_WEBHOOK, timeout=5)
-            if resp.status_code == 200:
-                text = resp.json().get("text")
-                if text:
-                    speaker_manager.say(text)
+            # Vérifie si n8n a envoyé un message à lire
+            response = requests.get(N8N_SPEAKER_ENDPOINT, timeout=10)
+            if response.status_code == 200:
+                text = response.json().get("text", "")
+                if text.strip():
+                    # Reformule la phrase pour une meilleure oralité
+                    refined = llm.invoke(reformulation_prompt.format(phrase=text))
+                    print(f"🗣️ Lecture : {refined}")
+                    speaker_manager.say(refined)
             time.sleep(5)
+
         except Exception as e:
-            print(f"⚠️ Erreur speaker : {e}")
+            print(f"⚠️ Erreur agent speaker : {e}")
             time.sleep(10)
 
 if __name__ == "__main__":
-    speaker_loop()
+    speak_loop()
