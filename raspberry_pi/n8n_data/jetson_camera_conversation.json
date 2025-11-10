@@ -1,0 +1,163 @@
+{
+    "name": "Jetson Camera Conversation Agent",
+    "nodes": [
+      {
+        "parameters": {
+          "path": "camera/person",
+          "options": {}
+        },
+        "id": "1",
+        "name": "Webhook - Person Detected",
+        "type": "n8n-nodes-base.webhook",
+        "typeVersion": 1,
+        "position": [250, 300],
+        "webhookDescription": "Reçoit les détections de visages depuis le Jetson"
+      },
+      {
+        "parameters": {
+          "url": "http://jetson_mcp:8000/mcp/memory/get",
+          "options": {
+            "queryParametersUi": {
+              "parameter": [
+                {
+                  "name": "person",
+                  "value": "={{ $json[\"person\"] }}"
+                }
+              ]
+            }
+          }
+        },
+        "id": "2",
+        "name": "Get Memory Context",
+        "type": "n8n-nodes-base.httpRequest",
+        "typeVersion": 1,
+        "position": [500, 300]
+      },
+      {
+        "parameters": {
+          "conditions": {
+            "boolean": [],
+            "number": [],
+            "string": [
+              {
+                "value1": "={{ $json[\"context\"] }}",
+                "operation": "isEmpty"
+              }
+            ]
+          }
+        },
+        "id": "3",
+        "name": "If New Person",
+        "type": "n8n-nodes-base.if",
+        "typeVersion": 1,
+        "position": [700, 300]
+      },
+      {
+        "parameters": {
+          "functionCode": "const person = $json.person || 'Visiteur';\nconst previousContext = $json.context || '';\n\nreturn [{\n  prompt: `Tu es un assistant vocal à la maison. Tu reconnais ${person}. Si un contexte existe, résume-le brièvement avant de poursuivre la conversation. Sinon, souhaite-lui la bienvenue.`,\n  context: previousContext\n}];"
+        },
+        "id": "4",
+        "name": "Prepare Prompt",
+        "type": "n8n-nodes-base.function",
+        "typeVersion": 1,
+        "position": [900, 300]
+      },
+      {
+        "parameters": {
+          "url": "http://localhost:11434/api/generate",
+          "method": "POST",
+          "options": {},
+          "jsonParameters": true,
+          "bodyParametersJson": "{ \"model\": \"llama3\", \"prompt\": \"={{ $json[\"prompt\"] }}\" }"
+        },
+        "id": "5",
+        "name": "Ollama - Generate Response",
+        "type": "n8n-nodes-base.httpRequest",
+        "typeVersion": 1,
+        "position": [1150, 300]
+      },
+      {
+        "parameters": {
+          "url": "http://jetson_mcp:8000/mcp/ws",
+          "method": "POST",
+          "jsonParameters": true,
+          "bodyParametersJson": "{ \"type\": \"tts.speak\", \"payload\": { \"text\": \"={{ $json[\"response\"] || $json[\"data\"] }}\" } }"
+        },
+        "id": "6",
+        "name": "Send to TTS via WebSocket",
+        "type": "n8n-nodes-base.httpRequest",
+        "typeVersion": 1,
+        "position": [1400, 300]
+      }
+    ],
+    "connections": {
+      "Webhook - Person Detected": {
+        "main": [
+          [
+            {
+              "node": "Get Memory Context",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Get Memory Context": {
+        "main": [
+          [
+            {
+              "node": "If New Person",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "If New Person": {
+        "main": [
+          [
+            {
+              "node": "Prepare Prompt",
+              "type": "main",
+              "index": 0
+            }
+          ],
+          [
+            {
+              "node": "Prepare Prompt",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Prepare Prompt": {
+        "main": [
+          [
+            {
+              "node": "Ollama - Generate Response",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Ollama - Generate Response": {
+        "main": [
+          [
+            {
+              "node": "Send to TTS via WebSocket",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      }
+    },
+    "settings": {
+      "executionOrder": "v1",
+      "saveManualExecutions": false
+    },
+    "id": "jetson-camera-conv-001"
+  }
+  

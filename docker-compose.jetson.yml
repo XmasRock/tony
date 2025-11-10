@@ -1,0 +1,41 @@
+version: "3.9"
+
+services:
+  mcp_server:
+    build: ./jetson/mcp_server
+    container_name: jetson_mcp
+    restart: unless-stopped
+    ports:
+      - "${JETSON_MCP_PORT}:8000"
+    volumes:
+      - ./jetson/mcp_server/data:/app/data
+      - /dev/video0:/dev/video0
+    environment:
+      - TZ=${GENERIC_TIMEZONE}
+    devices:
+      - /dev/video0:/dev/video0
+
+  jetson_camera:
+    image: python:3.10-slim
+    container_name: jetson_camera
+    restart: unless-stopped
+    volumes:
+      - ./jetson/mcp_server/scripts:/app/scripts
+    working_dir: /app/scripts
+    command: ["python", "jetson_camera.py"]
+    devices:
+      - /dev/video0:/dev/video0
+    environment:
+      - SERVER_WS=ws://mcp_server:8000/mcp/ws
+
+  jetson_audio:
+    image: python:3.10-slim
+    container_name: jetson_audio
+    restart: unless-stopped
+    volumes:
+      - ./jetson/mcp_server/scripts:/app/scripts
+      - /dev/snd:/dev/snd
+    working_dir: /app/scripts
+    command: ["python", "jetson_audio.py"]
+    environment:
+      - SERVER_WS=ws://mcp_server:8000/mcp/ws

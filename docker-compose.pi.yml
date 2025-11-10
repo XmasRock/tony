@@ -1,0 +1,39 @@
+version: "3.9"
+
+services:
+  n8n:
+    image: n8nio/n8n:latest
+    container_name: n8n_pi
+    restart: unless-stopped
+    ports:
+      - "${N8N_PORT}:5678"
+    volumes:
+      - ./raspberry_pi/n8n_data:/home/node/.n8n
+    environment:
+      - GENERIC_TIMEZONE=${GENERIC_TIMEZONE}
+      - N8N_BASIC_AUTH_ACTIVE=${N8N_BASIC_AUTH_ACTIVE}
+      - N8N_BASIC_AUTH_USER=${N8N_BASIC_AUTH_USER}
+      - N8N_BASIC_AUTH_PASSWORD=${N8N_BASIC_AUTH_PASSWORD}
+
+  pi_audio_client:
+    image: python:3.10-slim
+    container_name: pi_audio_client
+    restart: unless-stopped
+    volumes:
+      - ./raspberry_pi/scripts:/app/scripts
+      - /dev/snd:/dev/snd
+    working_dir: /app/scripts
+    command: ["python", "jetson_audio_client.py"]
+    environment:
+      - SERVER_WS=ws://jetson_mcp:8000/mcp/ws
+
+  pi_camera_client:
+    image: python:3.10-slim
+    container_name: pi_camera_client
+    restart: unless-stopped
+    volumes:
+      - ./raspberry_pi/scripts:/app/scripts
+    working_dir: /app/scripts
+    command: ["python", "jetson_camera_client.py"]
+    environment:
+      - SERVER_WS=ws://jetson_mcp:8000/mcp/ws
