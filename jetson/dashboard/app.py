@@ -8,10 +8,10 @@ import psutil
 import json
 import datetime
 
-LOG_DIR = Path("/var/log/jetson_agents")
+LOG_DIR = Path("/var/log/tony_agents")
 templates = Jinja2Templates(directory=str(Path(__file__).parent / "templates"))
 
-app = FastAPI(title="Jetson IA Dashboard")
+app = FastAPI(title="Tony IA Dashboard")
 
 @app.get("/", response_class=HTMLResponse)
 async def home(request: Request):

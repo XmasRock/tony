@@ -1,0 +1,12 @@
+[Unit]
+Description=Tony AI Agents
+After=docker.service
+Requires=docker.service
+
+[Service]
+Restart=always
+ExecStart=/usr/bin/docker start -a tony_agents
+ExecStop=/usr/bin/docker stop -t 5 tony_agents
+
+[Install]
+WantedBy=multi-user.target

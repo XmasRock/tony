@@ -1,0 +1,13 @@
+fastapi
+uvicorn
+flask
+requests
+sounddevice
+wave
+numpy
+pyttsx3
+openai-whisper
+langchain
+ollama
+pydantic
+gtts

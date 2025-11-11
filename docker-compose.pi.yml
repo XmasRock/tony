@@ -25,7 +25,7 @@ services:
     working_dir: /app/scripts
     command: ["python", "jetson_audio_client.py"]
     environment:
-      - SERVER_WS=ws://jetson_mcp:8000/mcp/ws
+      - SERVER_WS=ws://${JETSON_IP}:${JETSON_MCP_PORT}/mcp/ws
 
   pi_camera_client:
     image: python:3.10-slim
@@ -36,4 +36,41 @@ services:
     working_dir: /app/scripts
     command: ["python", "jetson_camera_client.py"]
     environment:
-      - SERVER_WS=ws://jetson_mcp:8000/mcp/ws
+      - SERVER_WS=ws://${JETSON_IP}:${JETSON_MCP_PORT}/mcp/ws
+  n8n:
+    image: n8nio/n8n:latest
+    container_name: n8n
+    restart: always
+    ports:
+      - "5678:5678"
+    environment:
+      - N8N_BASIC_AUTH_ACTIVE=true
+      - N8N_BASIC_AUTH_USER=${N8N_BASIC_AUTH_USER}
+      - N8N_BASIC_AUTH_PASSWORD=${N8N_BASIC_AUTH_PASSWORD}
+      - N8N_HOST=0.0.0.0
+      - N8N_PORT=5678
+      - EXECUTIONS_DATA_SAVE_ON_ERROR=all
+      - EXECUTIONS_DATA_SAVE_ON_SUCCESS=none
+      - NODE_FUNCTION_ALLOW_EXTERNAL=*
+      - TZ=Europe/Paris
+    volumes:
+      - ./n8n_data:/home/node/.n8n
+    depends_on:
+      - orchestrator_panel
+
+  orchestrator_panel:
+    build: ./panel
+    container_name: orchestrator_panel
+    restart: always
+    ports:
+      - "8080:8080"
+    environment:
+      - JETSON_API=http://${JETSON_IP}:${AGENT_SYSTEM_PORT}
+      - SPEAKER_API=http://${JETSON_IP}:${AGENT_SPEAKER_PORT}
+      - MASTER_API=http://${JETSON_IP}:${AGENT_MASTER_PORT}
+    volumes:
+      - ./panel:/app
+
+networks:
+  default:
+    driver: bridge

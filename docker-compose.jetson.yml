@@ -38,4 +38,29 @@ services:
     working_dir: /app/scripts
     command: ["python", "jetson_audio.py"]
     environment:
-      - SERVER_WS=ws://mcp_server:8000/mcp/ws
+      - SERVER_WS=ws://${JETSON_IP}:${AGENT_SYSTEM_PORT}/mcp/ws
+
+
+  tony_agents:
+    build: .
+    container_name: tony_agents
+    restart: always
+    ports:
+      - "5050:${AGENT_MASTER_PORT}"  # Master / voice command
+      - "5051:${AGENT_SPEAKER_PORT}"  # Speaker
+      - "8000:${AGENT_SYSTEM_PORT}"  # System / Camera
+    devices:
+      - "/dev/video0:/dev/video0"  # Caméra
+      - "/dev/snd:/dev/snd"        # Micro / audio
+    volumes:
+      - /mnt/ssd/jetson_data:/app/data
+      - /mnt/ssd/models:/app/models
+    environment:
+      - OLLAMA_HOST=http://${OLLAMA_IP}:${OLLAMA_PORT}
+      - JETSON_MODE=production
+    command: ["python3", "start_agents.py"]
+    runtime: nvidia
+
+networks:
+  default:
+    driver: bridge
